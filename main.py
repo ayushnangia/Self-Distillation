@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, help="Output directory")
     parser.add_argument("--model_name", type=str, default="Qwen/Qwen2.5-7B-Instruct", help="Model name")
     parser.add_argument("--seed", type=int, default=42, help="Seed")
+    parser.add_argument("--num_gpus", type=int, default=1, help="Number of GPUs (adjusts grad accum to keep effective batch size)")
     return parser.parse_args()
 
 def load_tooluse_dataset(seed=42) -> Dataset:
