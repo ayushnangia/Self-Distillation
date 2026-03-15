@@ -1,3 +1,8 @@
+"""DEPRECATED: Use train.py --method sdft --task tooluse instead."""
+
+import warnings
+warnings.warn("main.py is deprecated. Use: train.py --method sdft --task tooluse", DeprecationWarning, stacklevel=2)
+
 from distil_trainer import DistilTrainer
 from distil_config import DistilConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -65,7 +70,7 @@ if __name__ == "__main__":
         use_vllm = True,
         vllm_mode="colocate",
         vllm_tensor_parallel_size=1, 
-        vllm_gpu_memory_utilization=0.3,
+        vllm_gpu_memory_utilization=0.5,
         vllm_enable_sleep_mode=True, 
         learning_rate = args.learning_rate,
         warmup_ratio = 0.1,
@@ -78,7 +83,7 @@ if __name__ == "__main__":
         max_prompt_length = 1024,
         max_completion_length = 1024,
         num_train_epochs = args.num_train_epochs,
-        save_steps = 100,
+        save_steps = 50,
         max_grad_norm = 1,
         report_to = "wandb",
         output_dir = args.output_dir,
@@ -96,4 +101,4 @@ if __name__ == "__main__":
         train_dataset=dataset,
         processing_class=tokenizer,
     )
-    trainer.train()
+    trainer.train(resume_from_checkpoint=True)
