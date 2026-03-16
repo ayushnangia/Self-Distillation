@@ -2,7 +2,6 @@
 
 **Paper:** "Self-Distillation Enables Continual Learning" (arXiv:2601.19897)
 **Base Model:** Qwen/Qwen2.5-7B-Instruct
-**Hardware:** L40S 48GB (Vulcan, Alliance Canada)
 **Date:** 2026-03-16
 
 ---
