@@ -18,17 +18,17 @@ Everything trained so far is on HuggingFace. Pull these on any new cluster inste
 
 | Repo | Step | Greedy Acc |
 |------|------|-----------|
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-100` | 100 | 55.9% |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-200` | 200 | 48.5% |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-300` | 300 | 44.1% |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-400` | 400 | 47.1% |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-500` | 500 | 57.4% |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-600` | 600 | 47.1% |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-700` | 700 | 54.4% |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-800` | 800 | 52.9% |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-900` | 900 | 57.4% |
-| **`Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-1000`** | **1000** | **64.7%** |
-| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-1011` | 1011 | 57.4% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-100` | 100 | 55.9% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-200` | 200 | 48.5% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-300` | 300 | 44.1% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-400` | 400 | 47.1% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-500` | 500 | 57.4% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-600` | 600 | 47.1% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-700` | 700 | 54.4% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-800` | 800 | 52.9% |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-900` | 900 | 57.4% |
+| **`ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-1000`** | **1000** | **64.7%** |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-1011` | 1011 | 57.4% |
 
 ### SFT Checkpoints (6 models, NOT yet evaluated)
 
@@ -36,23 +36,23 @@ Everything trained so far is on HuggingFace. Pull these on any new cluster inste
 
 | Repo | LR | BS | Epochs |
 |------|-----|-----|--------|
-| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep1` | 5e-6 | 32 | 1 |
-| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep1` | 1e-5 | 32 | 1 |
-| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep1` | 5e-5 | 32 | 1 |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep1` | 5e-6 | 32 | 1 |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep1` | 1e-5 | 32 | 1 |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep1` | 5e-5 | 32 | 1 |
 
 **2-epoch (timed out at ~98%, best checkpoint saved):**
 
 | Repo | LR | BS | Best Step |
 |------|-----|-----|-----------|
-| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep2-step250` | 5e-6 | 32 | 250 |
-| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep2-step250` | 1e-5 | 32 | 250 |
-| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep2-step200` | 5e-5 | 32 | 200 |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep2-step250` | 5e-6 | 32 | 250 |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep2-step250` | 1e-5 | 32 | 250 |
+| `ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep2-step200` | 5e-5 | 32 | 200 |
 
 ### Eval Results Dataset
 
 | Repo | Contents |
 |------|----------|
-| `Ayushnangia/sdft-reproduction-eval-results` | SDFT greedy + pass@k JSON for all 11 steps + base |
+| `ayushnangia-sdft/sdft-reproduction-eval-results` | SDFT greedy + pass@k JSON for all 11 steps + base |
 
 ### Base Model
 
@@ -109,25 +109,25 @@ snapshot_download("Qwen/Qwen2.5-7B-Instruct", cache_dir=cache, token=token)
 
 # SDFT checkpoints (all 11)
 for step in [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1011]:
-    repo = f"Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-{step}"
+    repo = f"ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-{step}"
     print(f"Downloading {repo}...")
     snapshot_download(repo, cache_dir=cache, token=token)
 
 # SFT 1-epoch models (3)
 for lr in ["5e-6", "1e-5", "5e-5"]:
-    repo = f"Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr{lr}-bs32-ep1"
+    repo = f"ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr{lr}-bs32-ep1"
     print(f"Downloading {repo}...")
     snapshot_download(repo, cache_dir=cache, token=token)
 
 # SFT 2-epoch best checkpoints (3)
 for lr, step in [("5e-6", 250), ("1e-5", 250), ("5e-5", 200)]:
-    repo = f"Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr{lr}-bs32-ep2-step{step}"
+    repo = f"ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr{lr}-bs32-ep2-step{step}"
     print(f"Downloading {repo}...")
     snapshot_download(repo, cache_dir=cache, token=token)
 
 # Eval results dataset
 from huggingface_hub import snapshot_download
-snapshot_download("Ayushnangia/sdft-reproduction-eval-results", repo_type="dataset",
+snapshot_download("ayushnangia-sdft/sdft-reproduction-eval-results", repo_type="dataset",
                   cache_dir=cache, token=token)
 
 print("\nAll downloads complete!")
@@ -180,12 +180,12 @@ python -c "from src.data import load_medical; load_medical()"
 ```bash
 # Using HF model IDs (works on any cluster after download):
 for REPO in \
-    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep1 \
-    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep1 \
-    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep1 \
-    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep2-step250 \
-    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep2-step250 \
-    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep2-step200 \
+    ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep1 \
+    ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep1 \
+    ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep1 \
+    ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep2-step250 \
+    ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep2-step250 \
+    ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep2-step200 \
 ; do
     NAME=$(echo $REPO | sed 's|.*/||')
     echo "Evaluating: $NAME"
@@ -217,7 +217,7 @@ python evaluate.py \
 
 # SDFT best
 python evaluate.py \
-    --model_path Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-1000 \
+    --model_path ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-1000 \
     --task benchmarks \
     --output_dir results/benchmarks/sdft-step-1000
 ```
@@ -228,7 +228,7 @@ python evaluate.py \
 
 ```bash
 python evaluate.py \
-    --model_path Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-BEST \
+    --model_path ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-BEST \
     --task benchmarks \
     --output_dir results/benchmarks/sft-best
 ```
