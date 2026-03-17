@@ -10,16 +10,149 @@ Goal: 3 methods (SDFT, SFT, DFT) × 3 tasks (Tool Use, Science Q&A, Medical) + s
 
 ---
 
+## HuggingFace Assets (all public)
+
+Everything trained so far is on HuggingFace. Pull these on any new cluster instead of transferring files.
+
+### SDFT Checkpoints (11 models, all evaluated)
+
+| Repo | Step | Greedy Acc |
+|------|------|-----------|
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-100` | 100 | 55.9% |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-200` | 200 | 48.5% |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-300` | 300 | 44.1% |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-400` | 400 | 47.1% |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-500` | 500 | 57.4% |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-600` | 600 | 47.1% |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-700` | 700 | 54.4% |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-800` | 800 | 52.9% |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-900` | 900 | 57.4% |
+| **`Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-1000`** | **1000** | **64.7%** |
+| `Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-1011` | 1011 | 57.4% |
+
+### SFT Checkpoints (6 models, NOT yet evaluated)
+
+**1-epoch (completed training, final model saved):**
+
+| Repo | LR | BS | Epochs |
+|------|-----|-----|--------|
+| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep1` | 5e-6 | 32 | 1 |
+| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep1` | 1e-5 | 32 | 1 |
+| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep1` | 5e-5 | 32 | 1 |
+
+**2-epoch (timed out at ~98%, best checkpoint saved):**
+
+| Repo | LR | BS | Best Step |
+|------|-----|-----|-----------|
+| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep2-step250` | 5e-6 | 32 | 250 |
+| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep2-step250` | 1e-5 | 32 | 250 |
+| `Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep2-step200` | 5e-5 | 32 | 200 |
+
+### Eval Results Dataset
+
+| Repo | Contents |
+|------|----------|
+| `Ayushnangia/sdft-reproduction-eval-results` | SDFT greedy + pass@k JSON for all 11 steps + base |
+
+### Base Model
+
+| Repo | What |
+|------|------|
+| `Qwen/Qwen2.5-7B-Instruct` | Base model (from Qwen, not ours) |
+
+---
+
+## Setup on a New Cluster
+
+### 1. Clone code
+
+```bash
+git clone https://github.com/ayushnangia/Self-Distillation.git
+cd Self-Distillation
+```
+
+### 2. Python environment
+
+```bash
+# Alliance Canada clusters:
+module load python/3.11 cuda/12.6
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --no-index --upgrade pip
+pip install --no-index torch torchvision
+pip install vllm unsloth accelerate deepspeed
+pip install openai loguru pydantic tqdm numpy wandb
+pip install --no-deps datasets dill xxhash multiprocess
+pip install lm-eval
+
+# Non-Alliance (any cluster):
+pip install -r requirements.txt
+```
+
+### 3. Download all models from HuggingFace
+
+```bash
+export HF_HOME=/scratch/$USER/hf_cache
+export HF_TOKEN=hf_...  # your token
+mkdir -p $HF_HOME
+
+python3 << 'EOF'
+from huggingface_hub import snapshot_download
+import os
+
+token = os.environ["HF_TOKEN"]
+cache = os.environ["HF_HOME"]
+
+# Base model
+print("Downloading base model...")
+snapshot_download("Qwen/Qwen2.5-7B-Instruct", cache_dir=cache, token=token)
+
+# SDFT checkpoints (all 11)
+for step in [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1011]:
+    repo = f"Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-{step}"
+    print(f"Downloading {repo}...")
+    snapshot_download(repo, cache_dir=cache, token=token)
+
+# SFT 1-epoch models (3)
+for lr in ["5e-6", "1e-5", "5e-5"]:
+    repo = f"Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr{lr}-bs32-ep1"
+    print(f"Downloading {repo}...")
+    snapshot_download(repo, cache_dir=cache, token=token)
+
+# SFT 2-epoch best checkpoints (3)
+for lr, step in [("5e-6", 250), ("1e-5", 250), ("5e-5", 200)]:
+    repo = f"Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr{lr}-bs32-ep2-step{step}"
+    print(f"Downloading {repo}...")
+    snapshot_download(repo, cache_dir=cache, token=token)
+
+# Eval results dataset
+from huggingface_hub import snapshot_download
+snapshot_download("Ayushnangia/sdft-reproduction-eval-results", repo_type="dataset",
+                  cache_dir=cache, token=token)
+
+print("\nAll downloads complete!")
+EOF
+```
+
+### 4. Pre-cache datasets (needs internet)
+
+```bash
+python -c "from src.data import load_tooluse; load_tooluse()"
+python -c "from src.data import load_science; load_science()"
+python -c "from src.data import load_medical; load_medical()"
+```
+
+---
+
 ## Current State (2026-03-17)
 
 ### Done
 
-| What | Status | Location |
-|------|--------|----------|
-| Codebase (train/eval/analysis) | Complete | `~/Self-Distillation/` |
-| SDFT Tool Use (train + eval) | Complete | `/scratch/anangia/sdft_output/` |
-| SDFT Tool Use eval results | Complete | `/scratch/anangia/sdft_eval_results/` |
-| SFT Tool Use (12 configs trained) | Trained, **not evaluated** | `/scratch/anangia/sft_output/` |
+| What | Status | HuggingFace |
+|------|--------|-------------|
+| SDFT Tool Use (train + eval) | Complete | 11 model repos + eval dataset |
+| SFT Tool Use (6 configs trained) | Trained, **not evaluated** | 6 model repos |
+| Codebase | Complete | github.com/ayushnangia/Self-Distillation |
 | Replication report | Complete | `REPLICATION_REPORT.md` |
 
 ### Key Results So Far
@@ -30,63 +163,74 @@ Goal: 3 methods (SDFT, SFT, DFT) × 3 tasks (Tool Use, Science Q&A, Medical) + s
 | SDFT best (ours, step-1000) | 64.7% | Paper reports 70.6% |
 | SFT (ours) | **unevaluated** | Paper reports 63.2% |
 
-### Blocked
+### Blocked on Vulcan
 
-- Vulcan fairshare tanked (LevelFS=0.07 for `aip-rgrosse`)
+- Fairshare tanked (LevelFS=0.07 for `aip-rgrosse`)
 - Jobs stuck on Priority even at 1h/48G
-- Need alternative cluster or wait for fairshare recovery (~1 week half-life)
+- Alternative clusters: Killarney (cloud, no queue), Rorqual, Narval, Trillium
 
 ---
 
-## Phase 1: Evaluate What We Have (no GPU training needed)
+## Phase 1: Evaluate What We Have (no training needed)
 
 **Priority: HIGHEST — unlocks SDFT vs SFT comparison immediately**
 
-### 1a. Eval all SFT checkpoints on Tool Use
-
-12 trained models, zero evaluated. Run on any machine with 1 GPU.
+### 1a. Eval all 6 SFT checkpoints on Tool Use
 
 ```bash
-# On cluster with GPU:
-cd Self-Distillation
-for CKPT in /scratch/anangia/sft_output/lr*; do
-    NAME=$(basename $CKPT)
+# Using HF model IDs (works on any cluster after download):
+for REPO in \
+    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep1 \
+    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep1 \
+    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep1 \
+    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-6-bs32-ep2-step250 \
+    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr1e-5-bs32-ep2-step250 \
+    Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-lr5e-5-bs32-ep2-step200 \
+; do
+    NAME=$(echo $REPO | sed 's|.*/||')
+    echo "Evaluating: $NAME"
     python evaluate.py \
-        --model_path "$CKPT" \
+        --model_path "$REPO" \
         --task tooluse \
-        --output_dir /scratch/anangia/sft_eval_results/$NAME \
+        --output_dir results/sft_eval/$NAME \
         --n_samples 50 \
         --k_values 1,5,10,20,50
 done
 ```
 
-Or use the Slurm script:
+Or on Vulcan with Slurm:
 ```bash
 sbatch --time=1:00:00 --mem=48G scripts/eval_all_sft.sh
 ```
 
-**Expected output:** 12 JSON files with greedy accuracy + pass@k for each SFT config.
+**Resource:** 1 GPU, 48G RAM, ~15 min per model, ~1.5h total
+**Output:** 6 JSON files with greedy accuracy + pass@k
 
 ### 1b. Run prior capability benchmarks on SDFT best + base
 
 ```bash
 # Base model
-python evaluate.py --model_path Qwen/Qwen2.5-7B-Instruct --task benchmarks \
-    --output_dir /scratch/anangia/sdft_eval_results/base
+python evaluate.py \
+    --model_path Qwen/Qwen2.5-7B-Instruct \
+    --task benchmarks \
+    --output_dir results/benchmarks/base
 
-# SDFT best checkpoint
-python evaluate.py --model_path /scratch/anangia/sdft_output/checkpoint-1000 --task benchmarks \
-    --output_dir /scratch/anangia/sdft_eval_results/step-1000
+# SDFT best
+python evaluate.py \
+    --model_path Ayushnangia/qwen2.5-7b-instruct-sdft-tooluse-step-1000 \
+    --task benchmarks \
+    --output_dir results/benchmarks/sdft-step-1000
 ```
 
-**Expected output:** HellaSwag, HumanEval, IFEval, MMLU, TruthfulQA, Winogrande scores.
+**Output:** HellaSwag, HumanEval, IFEval, MMLU, TruthfulQA, Winogrande scores
 
-### 1c. Run benchmarks on best SFT checkpoint (after 1a identifies it)
+### 1c. Benchmarks on best SFT checkpoint (after 1a identifies it)
 
 ```bash
-# After finding best SFT config from 1a:
-python evaluate.py --model_path /scratch/anangia/sft_output/BEST_CONFIG \
-    --task benchmarks --output_dir /scratch/anangia/sft_eval_results/BEST_CONFIG
+python evaluate.py \
+    --model_path Ayushnangia/qwen2.5-7b-instruct-sft-tooluse-BEST \
+    --task benchmarks \
+    --output_dir results/benchmarks/sft-best
 ```
 
 ---
@@ -95,35 +239,34 @@ python evaluate.py --model_path /scratch/anangia/sft_output/BEST_CONFIG \
 
 **Priority: HIGH — completes the 3-method × 3-task matrix**
 
-### Training commands
-
-Each uses `scripts/run_single_task.sh METHOD TASK LR BS EPOCHS SEED`:
-
 ```bash
 # SDFT on Science + Medical
-sbatch --time=8:00:00 --job-name=sdft-science scripts/run_single_task.sh sdft science
-sbatch --time=8:00:00 --job-name=sdft-medical scripts/run_single_task.sh sdft medical
+accelerate launch --config_file configs/accelerate/sdft.yaml \
+    train.py --method sdft --task science --output_dir output/sdft_science
+accelerate launch --config_file configs/accelerate/sdft.yaml \
+    train.py --method sdft --task medical --output_dir output/sdft_medical
 
 # DFT on all 3 tasks
-sbatch --time=8:00:00 --job-name=dft-tooluse scripts/run_single_task.sh dft tooluse
-sbatch --time=8:00:00 --job-name=dft-science scripts/run_single_task.sh dft science
-sbatch --time=8:00:00 --job-name=dft-medical scripts/run_single_task.sh dft medical
+accelerate launch --config_file configs/accelerate/sdft.yaml \
+    train.py --method dft --task tooluse --output_dir output/dft_tooluse
+accelerate launch --config_file configs/accelerate/sdft.yaml \
+    train.py --method dft --task science --output_dir output/dft_science
+accelerate launch --config_file configs/accelerate/sdft.yaml \
+    train.py --method dft --task medical --output_dir output/dft_medical
 
 # SFT on Science + Medical
-sbatch --time=8:00:00 --job-name=sft-science scripts/run_single_task.sh sft science
-sbatch --time=8:00:00 --job-name=sft-medical scripts/run_single_task.sh sft medical
+accelerate launch --config_file configs/accelerate/sft.yaml \
+    train.py --method sft --task science --output_dir output/sft_science
+accelerate launch --config_file configs/accelerate/sft.yaml \
+    train.py --method sft --task medical --output_dir output/sft_medical
 ```
 
 **Resource requirements:**
 - SDFT/DFT: 375G RAM (DeepSpeed ZeRO-3 + vLLM colocate), 1 GPU, ~6-8h
 - SFT: 64G RAM (DeepSpeed ZeRO-2), 1 GPU, ~3-6h
 
-### If using shorter time limits (backfill friendly)
-
-Jobs support resuming. Submit with `--time=2:59:00` and resubmit if they timeout:
-- `train.py` has `--resume` flag
-- `train_sequential.py` has `--resume_from` flag
-- Checkpoints auto-save every 50 steps
+On Slurm, use `scripts/run_single_task.sh METHOD TASK LR BS EPOCHS SEED`.
+Jobs support `--resume` for checkpoint recovery.
 
 ---
 
@@ -132,28 +275,24 @@ Jobs support resuming. Submit with `--time=2:59:00` and resubmit if they timeout
 **Priority: HIGH — most visually compelling result**
 
 ```bash
-sbatch --time=8:00:00 --job-name=seq-sdft scripts/train_sequential.sh sdft
-sbatch --time=8:00:00 --job-name=seq-sft scripts/train_sequential.sh sft
-sbatch --time=8:00:00 --job-name=seq-dft scripts/train_sequential.sh dft
+python train_sequential.py --method sdft --output_dir output/seq_sdft
+python train_sequential.py --method sft  --output_dir output/seq_sft
+python train_sequential.py --method dft  --output_dir output/seq_dft
 ```
 
 Task order: Science → Tool Use → Medical (per paper).
-After each task, checkpoint is saved for evaluation.
+After each task, checkpoint saved for evaluation.
 
 ---
 
 ## Phase 4: Evaluate Everything
 
-After training completes, evaluate all checkpoints:
+After training, evaluate all checkpoints on task-specific metrics + 6 benchmarks:
 
 ```bash
-# Single-task models: task-specific eval + benchmarks
-sbatch scripts/eval_checkpoint.sh /scratch/anangia/sdft_science_output/... tooluse sdft-science
-sbatch scripts/eval_checkpoint.sh /scratch/anangia/dft_tooluse_output/... tooluse dft-tooluse
-# ... repeat for all method×task combos
-
-# Sequential CL: evaluate each stage checkpoint on all 3 tasks
-# (custom script needed)
+# For each trained model:
+python evaluate.py --model_path output/MODEL --task TASK --output_dir results/MODEL
+python evaluate.py --model_path output/MODEL --task benchmarks --output_dir results/MODEL
 ```
 
 ---
@@ -161,10 +300,10 @@ sbatch scripts/eval_checkpoint.sh /scratch/anangia/dft_tooluse_output/... toolus
 ## Phase 5: Generate Figures + Tables
 
 ```bash
-python analysis/collect_results.py --results_dir /scratch/anangia/ --output results.csv
+python analysis/collect_results.py --results_dir results/ --output results.csv
 python analysis/plot_pareto.py --csv results.csv --output figures/pareto.pdf          # Figure 2
 python analysis/plot_pass_at_k.py --results_dir results/ --output figures/pass_at_k.pdf  # Figure 3 right
-python analysis/plot_sequential.py --sdft_dir ... --sft_dir ... --output figures/seq.pdf  # Figure 4
+python analysis/plot_sequential.py --sdft_dir results/seq_sdft --sft_dir results/seq_sft --output figures/seq.pdf  # Figure 4
 python analysis/generate_table.py --csv results.csv --output figures/table1.tex       # Table 1
 ```
 
@@ -172,58 +311,28 @@ python analysis/generate_table.py --csv results.csv --output figures/table1.tex 
 
 ## Cluster Options
 
-### Vulcan (current)
+### Vulcan (current, blocked)
 - L40S 48GB, Slurm, `aip-rgrosse` account
-- **Problem:** fairshare tanked (LevelFS=0.07), jobs stuck on Priority
-- **Mitigation:** Use <3h jobs for backfill, reduce --mem for eval jobs (48G not 375G)
+- Fairshare tanked (LevelFS=0.07), jobs stuck on Priority
 - Fairshare recovers with 1-week half-life
 
 ### Killarney (Alliance cloud)
 - L40S, OpenStack VMs (no Slurm, no fairshare queue)
-- Need to set up environment from scratch on a VM
 - No scheduling competition — run immediately
 - Good for: eval jobs, short training runs
 
-### Narval / Cedar / Trillium
-- Would need to check if `aip-rgrosse` has allocation there
-- Different fairshare pools — might not be tanked
+### Rorqual / Narval / Trillium
+- Check if `aip-rgrosse` has allocation
+- Different fairshare pools
 - Trillium has H100s (24h max)
 
 ---
 
-## Portable Setup (for any new cluster)
+## Summary: What's Needed
 
-```bash
-git clone https://github.com/ayushnangia/Self-Distillation.git
-cd Self-Distillation
+**Minimum viable (Phase 1 only, ~2h GPU):**
+- Eval 6 SFT models on tool-use → SDFT vs SFT comparison
+- Benchmarks on base + SDFT best + SFT best → Pareto plot
 
-# Python env
-module load python/3.11 cuda/12.6  # adjust per cluster
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# HuggingFace
-export HF_HOME=/scratch/$USER/hf_cache  # or wherever
-export HF_TOKEN=hf_...  # your token
-
-# Pre-cache datasets (needs internet)
-python -c "from src.data import load_tooluse; load_tooluse()"
-python -c "from src.data import load_science; load_science()"
-python -c "from src.data import load_medical; load_medical()"
-
-# Pre-cache model
-python -c "from transformers import AutoModelForCausalLM; AutoModelForCausalLM.from_pretrained('Qwen/Qwen2.5-7B-Instruct')"
-```
-
----
-
-## Summary: What's Needed for Advisor
-
-**Minimum viable demo (Phase 1 only):**
-- SDFT vs SFT on tool-use (accuracy + pass@k) — just need to run eval on existing SFT models
-- Prior capability benchmarks for both — shows the Pareto tradeoff
-
-**Full reproduction (Phases 1-5):**
+**Full reproduction (Phases 1-5, ~80-100h GPU):**
 - 3 methods × 3 tasks + sequential CL + all figures/tables
-- Estimated GPU hours: ~80-100h total (training + eval)
