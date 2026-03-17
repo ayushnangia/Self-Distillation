@@ -24,8 +24,8 @@
 
 ## Completed Training
 
-- [x] SDFT Tool Use — checkpoints 100–1011 at `/scratch/anangia/sdft_output/`
-- [x] SDFT Tool Use evals — `/scratch/anangia/sdft_eval_results/{base,step-100,...,step-1011}/`
+- [x] SDFT Tool Use — checkpoints 100–1011 at `$SCRATCH/sdft_output/`
+- [x] SDFT Tool Use evals — `$SCRATCH/sdft_eval_results/{base,step-100,...,step-1011}/`
 - [x] SFT Tool Use (1-epoch, 3 LRs) — completed: sft-5e-6-32-1, sft-1e-5-32-1, sft-5e-5-32-1
 - [x] SFT Tool Use (2-epoch, 3 LRs) — timed out at 98%, epoch 1 checkpoints saved
 

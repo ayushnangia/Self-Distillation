@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --account=def-rgrosse
+#SBATCH --account=def-zhijing
 #SBATCH --gpus-per-node=h100:1
 #SBATCH --cpus-per-task=6
-#SBATCH --mem=64000M
+#SBATCH --mem=48000M
 #SBATCH --time=0-08:00
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
@@ -33,6 +33,16 @@ mkdir -p "$OUTPUT_DIR"
 
 echo "Method: $METHOD | Task: $TASK | LR: $LR | BS: $BS | Epochs: $EPOCHS"
 echo "Output: $OUTPUT_DIR"
+echo "Job ID: $SLURM_JOB_ID | Node: $SLURMD_NODENAME"
+echo "Data dir: $SDFT_DATA_DIR"
+
+# Auto-resume from latest checkpoint if exists
+RESUME_FLAG=""
+LATEST_CKPT=$(ls -td "$OUTPUT_DIR"/checkpoint-* 2>/dev/null | head -1)
+if [ -n "$LATEST_CKPT" ]; then
+    echo "Resuming from checkpoint: $LATEST_CKPT"
+    RESUME_FLAG="--resume"
+fi
 
 if [[ "$METHOD" == "sft" ]]; then
     # SFT uses accelerate + ZeRO-2
@@ -43,7 +53,8 @@ if [[ "$METHOD" == "sft" ]]; then
         --output_dir "$OUTPUT_DIR" \
         --learning_rate "$LR" \
         --batch_size "$BS" \
-        --num_train_epochs "$EPOCHS"
+        --num_train_epochs "$EPOCHS" \
+        $RESUME_FLAG
 else
     # SDFT and DFT use accelerate + ZeRO-3
     accelerate launch --config_file configs/accelerate/sdft.yaml \
@@ -53,5 +64,10 @@ else
         --output_dir "$OUTPUT_DIR" \
         --learning_rate "$LR" \
         --batch_size "$BS" \
-        --num_train_epochs "$EPOCHS"
+        --num_train_epochs "$EPOCHS" \
+        $RESUME_FLAG
 fi
+
+# Print resource usage
+echo ""
+echo "=== Job complete. Run 'seff $SLURM_JOB_ID' for resource usage ==="

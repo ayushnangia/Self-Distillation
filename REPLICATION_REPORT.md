@@ -156,9 +156,9 @@ Once we have 3 methods x 3 tasks + benchmarks, we can generate the Pareto plot (
 
 | What | Where |
 |------|-------|
-| SDFT checkpoints | `/scratch/anangia/sdft_output/checkpoint-{100..1011}/` |
-| SDFT eval results | `/scratch/anangia/sdft_eval_results/{base,step-100,...}/` |
-| SFT checkpoints (unevaluated) | `/scratch/anangia/sft_output/lr*_bs*_ep*_seed42/` |
-| Training logs | `/home/anangia/Self-Distillation/logs/` |
-| Codebase | `/home/anangia/Self-Distillation/` |
-| Paper source | `/home/anangia/Self-Distillation/paper/arxiv.tex` |
+| SDFT checkpoints | HuggingFace `ayushnangia-sdft/qwen2.5-7b-instruct-sdft-tooluse-step-*` |
+| SDFT eval results | HuggingFace `ayushnangia-sdft/sdft-reproduction-eval-results` |
+| SFT checkpoints | HuggingFace `ayushnangia-sdft/qwen2.5-7b-instruct-sft-tooluse-*` |
+| Training logs | `logs/` |
+| Codebase | `https://github.com/ayushnangia/Self-Distillation` |
+| Paper source | `paper/arxiv.tex` |

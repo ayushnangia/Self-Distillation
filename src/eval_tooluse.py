@@ -148,12 +148,17 @@ def eval_pass_at_k(llm, tokenizer, eval_data, n_samples=20, k_values=(1, 5, 10))
     return avg_pass_at_k, pass_at_k_results
 
 
-def run_eval(model_path, eval_data_path="data/tooluse_data/eval_data.json",
+def run_eval(model_path, eval_data_path="data/tooluse_data/eval_data",
              output_file=None, gpu_memory_utilization=0.9,
              n_samples=20, k_values=(1, 5, 10), skip_pass_at_k=False):
     """Run full tool-use evaluation. Returns results dict."""
-    with open(eval_data_path) as f:
-        eval_data = json.load(f)
+    import os
+    if os.path.isdir(eval_data_path):
+        from datasets import load_from_disk
+        eval_data = load_from_disk(eval_data_path).to_list()
+    else:
+        with open(eval_data_path) as f:
+            eval_data = json.load(f)
     print(f"Loaded {len(eval_data)} evaluation examples")
 
     print(f"Loading model from {model_path}...")

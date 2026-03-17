@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --account=def-rgrosse
+#SBATCH --account=def-zhijing
 #SBATCH --gpus-per-node=h100:1
 #SBATCH --cpus-per-task=6
-#SBATCH --mem=64000M
+#SBATCH --mem=48000M
 #SBATCH --time=0-08:00
 #SBATCH --output=logs/seq-%x-%j.out
 #SBATCH --error=logs/seq-%x-%j.err

@@ -69,9 +69,9 @@ python evaluate.py --model_path output/sdft_tooluse --task all --output_dir resu
 
 Core: `torch`, `transformers`, `trl`, `vllm`, `accelerate`, `deepspeed`, `wandb`, `lm-eval`
 
-## HPC Notes (Vulcan)
+## HPC Notes
 
-- L40S 48GB GPUs, Slurm account `aip-rgrosse`
+- H100 80GB / L40S 48GB GPUs via Slurm
 - Set `HF_HOME` to `$SCRATCH` or `$PROJECT`
 - Use `--no-index` pip installs for cluster-optimized wheels
-- Pre-cache datasets on login node: `bash scripts/precache_datasets.sh`
+- Pre-cache models + datasets on login node: `source setup_env.sh --precache`

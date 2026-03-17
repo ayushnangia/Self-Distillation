@@ -74,18 +74,11 @@ cd Self-Distillation
 ### 2. Python environment
 
 ```bash
-# Alliance Canada clusters:
-module load python/3.11 cuda/12.6
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --no-index --upgrade pip
-pip install --no-index torch torchvision
-pip install vllm unsloth accelerate deepspeed
-pip install openai loguru pydantic tqdm numpy wandb
-pip install --no-deps datasets dill xxhash multiprocess
-pip install lm-eval
+# Slurm HPC clusters (with pre-built wheels):
+bash setup_env.sh --install
+source setup_env.sh --precache
 
-# Non-Alliance (any cluster):
+# Other environments:
 pip install -r requirements.txt
 ```
 
@@ -163,11 +156,10 @@ python -c "from src.data import load_medical; load_medical()"
 | SDFT best (ours, step-1000) | 64.7% | Paper reports 70.6% |
 | SFT (ours) | **unevaluated** | Paper reports 63.2% |
 
-### Blocked on Vulcan
+### Blocked
 
-- Fairshare tanked (LevelFS=0.07 for `aip-rgrosse`)
-- Jobs stuck on Priority even at 1h/48G
-- Alternative clusters: Killarney (cloud, no queue), Rorqual, Narval, Trillium
+- Primary cluster fairshare tanked — jobs stuck on Priority
+- Using alternative cluster with H100 GPUs
 
 ---
 
@@ -198,7 +190,7 @@ for REPO in \
 done
 ```
 
-Or on Vulcan with Slurm:
+Or via Slurm:
 ```bash
 sbatch --time=1:00:00 --mem=48G scripts/eval_all_sft.sh
 ```
@@ -311,20 +303,7 @@ python analysis/generate_table.py --csv results.csv --output figures/table1.tex 
 
 ## Cluster Options
 
-### Vulcan (current, blocked)
-- L40S 48GB, Slurm, `aip-rgrosse` account
-- Fairshare tanked (LevelFS=0.07), jobs stuck on Priority
-- Fairshare recovers with 1-week half-life
-
-### Killarney (Alliance cloud)
-- L40S, OpenStack VMs (no Slurm, no fairshare queue)
-- No scheduling competition — run immediately
-- Good for: eval jobs, short training runs
-
-### Rorqual / Narval / Trillium
-- Check if `aip-rgrosse` has allocation
-- Different fairshare pools
-- Trillium has H100s (24h max)
+Any Slurm cluster with H100 80GB or L40S 48GB GPUs works. Use `setup_env.sh` for environment setup. Adjust `--account` and `--gpus-per-node` in scripts as needed.
 
 ---
 
