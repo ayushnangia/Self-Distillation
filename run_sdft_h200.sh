@@ -1,22 +1,17 @@
 #!/bin/bash
-#SBATCH --account=aip-rgrosse
-#SBATCH --gpus-per-node=h200:1
+#SBATCH --account=def-rgrosse
+#SBATCH --gpus-per-node=h100:1
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=64000M
 #SBATCH --time=0-03:00
-#SBATCH --output=%N-%j.out
+#SBATCH --output=logs/sdft-%j.out
+#SBATCH --error=logs/sdft-%j.err
 #SBATCH --job-name=sdft
 
-module load python/3.11 cuda/12.6
-source ~/sdft_env/bin/activate
-
-export HF_HOME=$SCRATCH/hf_cache
-export HF_HUB_OFFLINE=1
-export TRANSFORMERS_OFFLINE=1
-
 cd ~/Self-Distillation
+source setup_env.sh --job
 
-# Single H200 — no DeepSpeed, no FSDP, no offloading. Just works.
+# Single H100 — no DeepSpeed needed
 python main.py \
     --model_name Qwen/Qwen2.5-7B-Instruct \
     --output_dir $SCRATCH/sdft_output \

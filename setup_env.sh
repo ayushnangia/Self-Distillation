@@ -1,43 +1,50 @@
 #!/bin/bash
-# Setup virtualenv for Self-Distillation on Vulcan
-# Run once: bash setup_env.sh
+# Environment setup for Self-Distillation on Alliance Canada clusters (Rorqual)
 #
-# NOTE: Must load arrow and opencv modules BEFORE creating the virtualenv.
-# vllm is installed with --no-deps to avoid dummy wheel blockers for
-# opencv-python-headless and pyarrow (provided by modules instead).
+# Two modes:
+#   source setup_env.sh          — activate env (interactive / login node)
+#   source setup_env.sh --job    — activate env inside Slurm job (sets offline mode)
+#
+# First-time setup (run once):
+#   bash setup_env.sh --install
+#
+# IMPORTANT: modules must be loaded BEFORE activating virtualenv
+# (arrow and opencv provide pyarrow and cv2 as system modules)
 
 set -e
 
-module load StdEnv/2023 gcc/12.3 arrow/18.1.0 opencv/4.11.0 python/3.12 cuda/12.6
+# Load required modules (must come before venv activation)
+module load gcc/12.3 arrow python/3.11 cuda/12.6 opencv
 
-# Create virtualenv
-virtualenv --no-download ~/sdft_env
+if [[ "$1" == "--install" ]]; then
+    # === ONE-TIME INSTALLATION ===
+    virtualenv --no-download ~/sdft_env
+    source ~/sdft_env/bin/activate
+    pip install --no-index --upgrade pip
+
+    # Core ML packages (all from Alliance pre-built wheels)
+    pip install --no-index torch numpy scipy matplotlib pandas
+    pip install --no-index transformers accelerate datasets deepspeed peft trl
+    pip install --no-index vllm==0.12.0 wandb openai rich
+
+    echo ""
+    echo "Environment setup complete at ~/sdft_env"
+    echo "Activate with: source setup_env.sh"
+    exit 0
+fi
+
+# === ACTIVATION ===
 source ~/sdft_env/bin/activate
-pip install --no-index --upgrade pip
 
-# Core packages (no arrow/opencv transitive deps)
-pip install --no-index torch transformers accelerate peft trl deepspeed \
-    numpy scipy matplotlib pandas rich wandb openai tqdm flashinfer-python
+# HuggingFace cache
+export HF_HOME=$SCRATCH/hf_cache
 
-# datasets pinned to 4.3.0 (compatible with pyarrow 18 from arrow module)
-pip install --no-index --no-deps datasets==4.3.0
-
-# vllm with --no-deps (opencv-python-headless comes from module)
-pip install --no-index --no-deps vllm
-
-# Sub-dependencies
-pip install --no-index safetensors tokenizers huggingface_hub regex \
-    dill multiprocess xxhash py-cpuinfo hjson pynvml einops msgpack \
-    msgspec lark compressed-tensors gguf mistral_common \
-    prometheus-client prometheus-fastapi-instrumentator \
-    uvicorn uvloop fastapi aiohttp cloudpickle blake3 ninja psutil \
-    partial-json-parser
-
-# Link module-provided site-packages into virtualenv
-SITE=$(python -c "import site; print(site.getsitepackages()[0])")
-echo "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v4/Compiler/gcccore/arrow/18.1.0/lib/python3.12/site-packages" > "$SITE/arrow.pth"
-echo "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v4/Compiler/gcc12/opencv/4.11.0/lib/python3.12/site-packages" > "$SITE/opencv.pth"
-
-echo ""
-echo "Environment setup complete at ~/sdft_env"
-echo "Activate with: source ~/sdft_env/bin/activate"
+# Offline mode for job scripts (no internet on compute nodes)
+if [[ "$1" == "--job" ]] || [[ -n "$SLURM_JOB_ID" ]]; then
+    export HF_HUB_OFFLINE=1
+    export HF_DATASETS_OFFLINE=1
+    export TRANSFORMERS_OFFLINE=1
+    export TOKENIZERS_PARALLELISM=false
+    export TRITON_CACHE_DIR=$SLURM_TMPDIR/.triton
+    export WANDB_MODE=offline
+fi
