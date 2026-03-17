@@ -4,6 +4,13 @@ Reproduction codebase for **"Self-Distillation Enables Continual Learning"** ([a
 
 Supports three training methods (SDFT, SFT, DFT) across three tasks (Tool Use, Science Q&A, Medical), with unified evaluation, benchmark tracking, and figure/table generation.
 
+### Updates
+
+03/12/26: added the science dataset and evaluation pipeline, regenerated the tool-use dataset, and added an updated tool-use evaluation file. I'll upload the Medical and Wiki datasets soon.
+
+## Abstract
+Continual learning, enabling models to acquire new skills and knowledge without degrading existing capabilities, remains a fundamental challenge for foundation models. While on-policy reinforcement learning can reduce forgetting, it requires explicit reward functions that are often unavailable. Learning from expert demonstrations, the primary alternative, is dominated by supervised fine-tuning (SFT), which is inherently off-policy. We introduce On-Policy **Self-Distillation Fine-Tuning (SDFT)**, a simple method that enables on-policy learning directly from demonstrations. SDFT leverages in-context learning by using a demonstration-conditioned model as its own teacher, generating on-policy training signals that preserve prior capabilities while acquiring new skills. Across skill learning and knowledge acquisition tasks, SDFT consistently outperforms SFT, achieving higher new-task accuracy while substantially reducing catastrophic forgetting. In sequential learning experiments, SDFT enables a single model to accumulate multiple skills over time without performance regression, establishing on-policy distillation as a practical path to continual learning from demonstrations.
+
 ## Setup
 
 ```bash
@@ -15,6 +22,10 @@ pip install -r requirements.txt
 ## Training
 
 All training goes through `train.py` with `--method` and `--task` flags:
+
+#### Tooluse
+
+Training:
 
 ```bash
 # SDFT (self-distillation fine-tuning)
