@@ -16,7 +16,8 @@ def load_tooluse(seed=42):
     """Load ToolAlpaca tool-use dataset.
 
     Returns:
-        train (4046 examples), val (None), test (68 examples)
+        train (4046 examples), val (None), test (97 examples from Arrow;
+        68-example paper split in eval_data_paper_68.json used for final eval)
     """
     data_dir = os.environ.get("SDFT_DATA_DIR", "data")
     train_path = os.path.join(data_dir, "tooluse_data", "train_data")
