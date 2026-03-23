@@ -148,7 +148,7 @@ def eval_pass_at_k(llm, tokenizer, eval_data, n_samples=20, k_values=(1, 5, 10))
     return avg_pass_at_k, pass_at_k_results
 
 
-def run_eval(model_path, eval_data_path="data/tooluse_data/eval_data",
+def run_eval(model_path, eval_data_path="data/tooluse_data/eval_data_paper_68.json",
              output_file=None, gpu_memory_utilization=0.9,
              n_samples=20, k_values=(1, 5, 10), skip_pass_at_k=False):
     """Run full tool-use evaluation. Returns results dict."""

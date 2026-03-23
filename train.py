@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument("--ref_model_mixup_alpha", type=float, default=0.01)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_gpus", type=int, default=1)
+    parser.add_argument("--max_completion_length", type=int, default=2048)
     parser.add_argument("--save_steps", type=int, default=50)
     parser.add_argument("--resume", action="store_true", help="Resume from checkpoint")
     return parser.parse_args()
@@ -53,7 +54,8 @@ def train_sdft(args, train_dataset, tokenizer):
         vllm_gpu_memory_utilization=0.5,
         vllm_enable_sleep_mode=True,
         learning_rate=args.learning_rate,
-        warmup_ratio=0.1,
+        warmup_steps=10,
+        weight_decay=0.0,
         lr_scheduler_type="cosine",
         logging_steps=1,
         bf16=True,
@@ -61,7 +63,7 @@ def train_sdft(args, train_dataset, tokenizer):
         per_device_train_batch_size=1,
         gradient_accumulation_steps=args.batch_size,
         max_prompt_length=1024,
-        max_completion_length=1024,
+        max_completion_length=args.max_completion_length,
         num_train_epochs=args.num_train_epochs,
         save_steps=args.save_steps,
         max_grad_norm=1,
@@ -102,7 +104,8 @@ def train_dft(args, train_dataset, tokenizer):
         vllm_gpu_memory_utilization=0.5,
         vllm_enable_sleep_mode=True,
         learning_rate=args.learning_rate,
-        warmup_ratio=0.1,
+        warmup_steps=10,
+        weight_decay=0.0,
         lr_scheduler_type="cosine",
         logging_steps=1,
         bf16=True,
@@ -110,7 +113,7 @@ def train_dft(args, train_dataset, tokenizer):
         per_device_train_batch_size=1,
         gradient_accumulation_steps=args.batch_size,
         max_prompt_length=1024,
-        max_completion_length=1024,
+        max_completion_length=args.max_completion_length,
         num_train_epochs=args.num_train_epochs,
         save_steps=args.save_steps,
         max_grad_norm=1,
@@ -162,10 +165,13 @@ def train_sft(args, train_dataset, tokenizer):
         gradient_checkpointing_kwargs={"use_reentrant": False},
     )
 
+    # SFTTrainer expects only 'messages' column — remove extras
+    sft_dataset = train_dataset.select_columns(["messages"])
+
     trainer = SFTTrainer(
         model=model,
         args=config,
-        train_dataset=train_dataset,
+        train_dataset=sft_dataset,
         processing_class=tokenizer,
     )
     trainer.train(resume_from_checkpoint=args.resume)

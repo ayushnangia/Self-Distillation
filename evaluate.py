@@ -26,6 +26,8 @@ def parse_args():
     parser.add_argument("--n_samples", type=int, default=20)
     parser.add_argument("--k_values", type=str, default="1,5,10")
     parser.add_argument("--skip_pass_at_k", action="store_true")
+    parser.add_argument("--eval_data", type=str, default=None,
+                        help="Override tooluse eval data path (JSON or Arrow dir)")
 
     # Medical specific
     parser.add_argument("--generate_only", action="store_true",
@@ -47,7 +49,7 @@ def run_tooluse(args):
     from src.eval_tooluse import run_eval
     k_values = tuple(int(k) for k in args.k_values.split(","))
     output_file = str(Path(args.output_dir) / "tooluse_results.json")
-    return run_eval(
+    kwargs = dict(
         model_path=args.model_path,
         output_file=output_file,
         gpu_memory_utilization=args.gpu_memory_utilization,
@@ -55,6 +57,9 @@ def run_tooluse(args):
         k_values=k_values,
         skip_pass_at_k=args.skip_pass_at_k,
     )
+    if args.eval_data:
+        kwargs["eval_data_path"] = args.eval_data
+    return run_eval(**kwargs)
 
 
 def run_science(args):

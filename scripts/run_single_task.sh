@@ -18,20 +18,24 @@
 #   $3 = learning rate (optional, default: 1e-5)
 #   $4 = batch size (optional, default: 32)
 #   $5 = epochs (optional, default: 1)
+#   $6 = alpha (optional, default: 0.01, SDFT/DFT only)
+#   $7 = seed (optional, default: 42)
 
-METHOD=${1:?Usage: $0 METHOD TASK [LR] [BS] [EPOCHS]}
-TASK=${2:?Usage: $0 METHOD TASK [LR] [BS] [EPOCHS]}
+METHOD=${1:?Usage: $0 METHOD TASK [LR] [BS] [EPOCHS] [ALPHA] [SEED]}
+TASK=${2:?Usage: $0 METHOD TASK [LR] [BS] [EPOCHS] [ALPHA] [SEED]}
 LR=${3:-1e-5}
 BS=${4:-32}
 EPOCHS=${5:-1}
+ALPHA=${6:-0.01}
+SEED=${7:-42}
 
 cd ~/Self-Distillation
 source setup_env.sh --job
 
-OUTPUT_DIR="$SCRATCH/${METHOD}_${TASK}_output/lr${LR}_bs${BS}_ep${EPOCHS}"
+OUTPUT_DIR="$SCRATCH/${METHOD}_${TASK}_output/lr${LR}_bs${BS}_ep${EPOCHS}_alpha${ALPHA}_seed${SEED}"
 mkdir -p "$OUTPUT_DIR"
 
-echo "Method: $METHOD | Task: $TASK | LR: $LR | BS: $BS | Epochs: $EPOCHS"
+echo "Method: $METHOD | Task: $TASK | LR: $LR | BS: $BS | Epochs: $EPOCHS | Alpha: $ALPHA | Seed: $SEED"
 echo "Output: $OUTPUT_DIR"
 echo "Job ID: $SLURM_JOB_ID | Node: $SLURMD_NODENAME"
 echo "Data dir: $SDFT_DATA_DIR"
@@ -54,6 +58,7 @@ if [[ "$METHOD" == "sft" ]]; then
         --learning_rate "$LR" \
         --batch_size "$BS" \
         --num_train_epochs "$EPOCHS" \
+        --seed "$SEED" \
         $RESUME_FLAG
 else
     # SDFT and DFT use accelerate + ZeRO-3
@@ -65,6 +70,8 @@ else
         --learning_rate "$LR" \
         --batch_size "$BS" \
         --num_train_epochs "$EPOCHS" \
+        --ref_model_mixup_alpha "$ALPHA" \
+        --seed "$SEED" \
         $RESUME_FLAG
 fi
 

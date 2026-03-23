@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import copy
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.data import TASK_LOADERS
@@ -23,6 +24,8 @@ def parse_args():
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--num_train_epochs", type=int, default=2)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--ref_model_mixup_alpha", type=float, default=0.01)
+    parser.add_argument("--max_completion_length", type=int, default=2048)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--task_order", type=str, default="science,tooluse,medical",
                         help="Comma-separated task order")
@@ -36,10 +39,10 @@ def train_sdft_on_task(model, tokenizer, train_dataset, output_dir, args):
     from distil_trainer import DistilTrainer
     from distil_config import DistilConfig
 
-    ref_model = AutoModelForCausalLM.from_pretrained(
-        args.model_name if args.resume_from is None else output_dir,
-        torch_dtype=torch.bfloat16,
-    )
+    # EMA teacher starts as a copy of the current student (not base model).
+    # Critical for sequential CL: after task 1, the teacher for task 2
+    # must be the task-1-trained model, not the original base model.
+    ref_model = copy.deepcopy(model)
 
     config = DistilConfig(
         seed=args.seed,
@@ -50,6 +53,7 @@ def train_sdft_on_task(model, tokenizer, train_dataset, output_dir, args):
         vllm_enable_sleep_mode=True,
         learning_rate=args.learning_rate,
         warmup_steps=10,
+        weight_decay=0.0,
         lr_scheduler_type="cosine",
         logging_steps=1,
         bf16=True,
@@ -57,15 +61,16 @@ def train_sdft_on_task(model, tokenizer, train_dataset, output_dir, args):
         per_device_train_batch_size=1,
         gradient_accumulation_steps=args.batch_size,
         max_prompt_length=1024,
-        max_completion_length=1024,
+        max_completion_length=args.max_completion_length,
         num_train_epochs=args.num_train_epochs,
         save_steps=50,
         max_grad_norm=1,
         report_to="wandb",
         output_dir=output_dir,
+        log_completions=False,
         sync_ref_model=True,
         ref_model_sync_steps=1,
-        ref_model_mixup_alpha=0.01,
+        ref_model_mixup_alpha=args.ref_model_mixup_alpha,
         vllm_importance_sampling_correction=True,
         num_loss_tokens_to_skip=3,
     )
@@ -79,6 +84,11 @@ def train_sdft_on_task(model, tokenizer, train_dataset, output_dir, args):
     )
     trainer.train()
     trainer.save_model(output_dir)
+    # Reload clean model from saved checkpoint to avoid DeepSpeed state issues
+    # when passing to the next task in sequential training
+    del trainer, ref_model
+    torch.cuda.empty_cache()
+    model = AutoModelForCausalLM.from_pretrained(output_dir, torch_dtype=torch.bfloat16)
     return model
 
 
@@ -87,10 +97,8 @@ def train_dft_on_task(model, tokenizer, train_dataset, output_dir, args):
     from distil_trainer import DistilTrainer
     from distil_config import DistilConfig
 
-    ref_model = AutoModelForCausalLM.from_pretrained(
-        args.model_name if args.resume_from is None else output_dir,
-        torch_dtype=torch.bfloat16,
-    )
+    # DFT teacher is a frozen copy of the current student at task start.
+    ref_model = copy.deepcopy(model)
 
     config = DistilConfig(
         seed=args.seed,
@@ -101,6 +109,7 @@ def train_dft_on_task(model, tokenizer, train_dataset, output_dir, args):
         vllm_enable_sleep_mode=True,
         learning_rate=args.learning_rate,
         warmup_steps=10,
+        weight_decay=0.0,
         lr_scheduler_type="cosine",
         logging_steps=1,
         bf16=True,
@@ -108,12 +117,13 @@ def train_dft_on_task(model, tokenizer, train_dataset, output_dir, args):
         per_device_train_batch_size=1,
         gradient_accumulation_steps=args.batch_size,
         max_prompt_length=1024,
-        max_completion_length=1024,
+        max_completion_length=args.max_completion_length,
         num_train_epochs=args.num_train_epochs,
         save_steps=50,
         max_grad_norm=1,
         report_to="wandb",
         output_dir=output_dir,
+        log_completions=False,
         sync_ref_model=False,
         generate_from_teacher=True,
         vllm_importance_sampling_correction=True,
@@ -129,6 +139,9 @@ def train_dft_on_task(model, tokenizer, train_dataset, output_dir, args):
     )
     trainer.train()
     trainer.save_model(output_dir)
+    del trainer, ref_model
+    torch.cuda.empty_cache()
+    model = AutoModelForCausalLM.from_pretrained(output_dir, torch_dtype=torch.bfloat16)
     return model
 
 
@@ -154,16 +167,24 @@ def train_sft_on_task(model, tokenizer, train_dataset, output_dir, args):
         max_length=4096,
         report_to="wandb",
         weight_decay=0.0,
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
     )
+
+    # SFTTrainer expects only 'messages' column — remove extras
+    sft_dataset = train_dataset.select_columns(["messages"])
 
     trainer = SFTTrainer(
         model=model,
         args=config,
-        train_dataset=train_dataset,
+        train_dataset=sft_dataset,
         processing_class=tokenizer,
     )
     trainer.train()
     trainer.save_model(output_dir)
+    del trainer
+    torch.cuda.empty_cache()
+    model = AutoModelForCausalLM.from_pretrained(output_dir, torch_dtype=torch.bfloat16)
     return model
 
 

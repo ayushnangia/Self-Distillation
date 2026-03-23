@@ -7,8 +7,9 @@ Each loader returns (train, val, test) datasets with columns:
 """
 
 import json
+import os
 from string import Template
-from datasets import Dataset, load_dataset
+from datasets import Dataset, load_dataset, load_from_disk
 
 
 def load_tooluse(seed=42):
@@ -17,16 +18,24 @@ def load_tooluse(seed=42):
     Returns:
         train (4046 examples), val (None), test (68 examples)
     """
-    train_data = json.load(open("data/tooluse_data/train_data.json"))
-    eval_data = json.load(open("data/tooluse_data/eval_data.json"))
+    data_dir = os.environ.get("SDFT_DATA_DIR", "data")
+    train_path = os.path.join(data_dir, "tooluse_data", "train_data")
+    eval_path = os.path.join(data_dir, "tooluse_data", "eval_data")
+
+    # Support both Arrow (new) and JSON (legacy) formats
+    if os.path.isdir(train_path):
+        train_data = load_from_disk(train_path).to_list()
+        eval_data = load_from_disk(eval_path).to_list()
+    else:
+        train_data = json.load(open(train_path + ".json"))
+        eval_data = json.load(open(eval_path + ".json"))
 
     teacher_template = Template("""$orig_content
 
 This is an example for a response to the question:
 $output_text
 
-Now answer with a response of your own, including the thinking process.
-""")
+Now answer with a response of your own, including the thinking process:""")
 
     def format_examples(examples):
         formatted = []
@@ -57,9 +66,27 @@ Now answer with a response of your own, including the thinking process.
 def load_science(seed=42):
     """Load SciKnowEval Chemistry L-3 subset.
 
+    Prefers local processed Arrow data (data/science_data/{train,eval}_processed/)
+    for offline compute node use. Falls back to HF download if not found.
+
+    Run `python scripts/precache_datasets.py` on a login node first.
+
     Returns:
         train (~75%), val (~5%), test (~20%)
     """
+    data_dir = os.environ.get("SDFT_DATA_DIR", "data")
+    train_path = os.path.join(data_dir, "science_data", "train_processed")
+    eval_path = os.path.join(data_dir, "science_data", "eval_processed")
+    val_path = os.path.join(data_dir, "science_data", "val_processed")
+
+    # Use pre-processed local Arrow data if available (offline-safe)
+    if os.path.isdir(train_path) and os.path.isdir(eval_path):
+        train = load_from_disk(train_path)
+        test = load_from_disk(eval_path)
+        val = load_from_disk(val_path) if os.path.isdir(val_path) else None
+        return train, val, test
+
+    # Fallback: download from HF (requires internet — login node only)
     ds = load_dataset("hicai-zju/SciKnowEval", split="test")
     df = ds.to_pandas()
 
@@ -93,7 +120,7 @@ def load_science(seed=42):
 This is an example for a response to the question:
 The correct answer is {answer}.
 
-Now answer with a response of your own."""
+Now answer with a response of your own, including the thinking process:"""
 
         formatted.append({
             "prompt": [{"role": "user", "content": full_prompt}],
@@ -118,9 +145,27 @@ Now answer with a response of your own."""
 def load_medical(seed=42):
     """Load HuatuoGPT-o1 English medical dataset.
 
+    Prefers local processed Arrow data (data/medical_data/{train,eval}_processed/)
+    for offline compute node use. Falls back to HF download if not found.
+
+    Run `python scripts/precache_datasets.py` on a login node first.
+
     Returns:
-        train (19000), val (500), test (500)
+        train (~18000), val (500), test (~1000)
     """
+    data_dir = os.environ.get("SDFT_DATA_DIR", "data")
+    train_path = os.path.join(data_dir, "medical_data", "train_processed")
+    eval_path = os.path.join(data_dir, "medical_data", "eval_processed")
+    val_path = os.path.join(data_dir, "medical_data", "val_processed")
+
+    # Use pre-processed local Arrow data if available (offline-safe)
+    if os.path.isdir(train_path) and os.path.isdir(eval_path):
+        train = load_from_disk(train_path)
+        test = load_from_disk(eval_path)
+        val = load_from_disk(val_path) if os.path.isdir(val_path) else None
+        return train, val, test
+
+    # Fallback: download from HF (requires internet — login node only)
     ds = load_dataset("FreedomIntelligence/medical-o1-reasoning-SFT", "en", split="train")
     ds = ds.shuffle(seed=seed)
 
@@ -134,8 +179,7 @@ def load_medical(seed=42):
 This is an example for a response to the question:
 {response}
 
-Now answer with a response of your own, including the thinking process.
-"""
+Now answer with a response of your own, including the thinking process:"""
         formatted.append({
             "prompt": [{"role": "user", "content": question}],
             "teacher_prompt": [{"role": "user", "content": teacher_content}],
@@ -146,9 +190,14 @@ Now answer with a response of your own, including the thinking process.
         })
 
     dataset = Dataset.from_list(formatted)
-    train = dataset.select(range(min(19000, len(dataset))))
-    val = dataset.select(range(19000, min(19500, len(dataset))))
-    test = dataset.select(range(19500, min(20000, len(dataset))))
+    # Paper: ~20K train, ~1000 eval. Split: train / val / test
+    n = len(dataset)
+    test_n = 1000
+    val_n = 500
+    train_n = n - test_n - val_n
+    train = dataset.select(range(train_n))
+    val = dataset.select(range(train_n, train_n + val_n))
+    test = dataset.select(range(train_n + val_n, n))
     return train, val, test
 
 

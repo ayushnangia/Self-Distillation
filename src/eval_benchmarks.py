@@ -1,6 +1,9 @@
 """Wrapper for lm-evaluation-harness benchmarks.
 
-Runs: HellaSwag, TruthfulQA, MMLU, Winogrande, HumanEval, IFEval
+Runs: HellaSwag, TruthfulQA (mc1), MMLU, Winogrande, HumanEval, IFEval
+
+Note: IFEval requires --apply_chat_template; the other benchmarks do NOT.
+This matches the paper's evaluation protocol for Qwen2.5-7B-Instruct.
 """
 
 import json
@@ -8,36 +11,15 @@ import subprocess
 from pathlib import Path
 
 
-DEFAULT_TASKS = "hellaswag,truthfulqa_mc2,mmlu,winogrande,humaneval,ifeval"
+# Benchmarks that run WITHOUT chat template
+NO_CHAT_TASKS = "hellaswag,truthfulqa_mc1,mmlu,winogrande,humaneval"
+# Benchmarks that require chat template
+CHAT_TASKS = "ifeval"
 
 
-def run_lm_eval(model_path, output_dir, tasks=None, gpu_memory_utilization=0.9,
-                max_model_len=2048, batch_size="auto"):
-    """Run lm-evaluation-harness via CLI.
-
-    Args:
-        model_path: Path to model checkpoint or HF model name.
-        output_dir: Directory to save results.
-        tasks: Comma-separated task string (default: all 6 benchmarks).
-        gpu_memory_utilization: vLLM GPU memory fraction.
-        max_model_len: Max model sequence length.
-        batch_size: Batch size for lm-eval.
-
-    Returns:
-        Path to output directory.
-    """
-    if tasks is None:
-        tasks = DEFAULT_TASKS
-
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-    model_args = (
-        f"pretrained={model_path},"
-        f"gpu_memory_utilization={gpu_memory_utilization},"
-        f"max_model_len={max_model_len},"
-        f"trust_remote_code=True"
-    )
-
+def _run_lm_eval_cmd(model_args, tasks, output_dir, batch_size="auto",
+                      apply_chat_template=False):
+    """Run a single lm_eval CLI invocation."""
     cmd = [
         "lm_eval",
         "--model", "vllm",
@@ -47,15 +29,59 @@ def run_lm_eval(model_path, output_dir, tasks=None, gpu_memory_utilization=0.9,
         "--output_path", output_dir,
         "--log_samples",
     ]
+    if apply_chat_template:
+        cmd.append("--apply_chat_template")
 
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=False)
-
     if result.returncode != 0:
         print(f"lm_eval exited with code {result.returncode}")
-    else:
-        print(f"Results saved to {output_dir}")
+    return result.returncode
 
+
+def run_lm_eval(model_path, output_dir, tasks=None, gpu_memory_utilization=0.9,
+                max_model_len=2048, batch_size="auto"):
+    """Run lm-evaluation-harness via CLI.
+
+    Splits benchmarks into two groups:
+    - HellaSwag, TruthfulQA mc1, MMLU, Winogrande, HumanEval: no chat template
+    - IFEval: with chat template
+
+    Args:
+        model_path: Path to model checkpoint or HF model name.
+        output_dir: Directory to save results.
+        tasks: Comma-separated task string. If None, runs all 6 benchmarks
+               with correct chat template settings.
+        gpu_memory_utilization: vLLM GPU memory fraction.
+        max_model_len: Max model sequence length.
+        batch_size: Batch size for lm-eval.
+
+    Returns:
+        Path to output directory.
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    model_args = (
+        f"pretrained={model_path},"
+        f"gpu_memory_utilization={gpu_memory_utilization},"
+        f"max_model_len={max_model_len},"
+        f"trust_remote_code=True"
+    )
+
+    if tasks is not None:
+        # Custom task list — run as-is (caller controls chat template)
+        _run_lm_eval_cmd(model_args, tasks, output_dir, batch_size)
+    else:
+        # Default: run both groups with correct settings
+        print("\n--- Benchmarks (no chat template) ---")
+        _run_lm_eval_cmd(model_args, NO_CHAT_TASKS, output_dir, batch_size,
+                         apply_chat_template=False)
+
+        print("\n--- IFEval (with chat template) ---")
+        _run_lm_eval_cmd(model_args, CHAT_TASKS, output_dir, batch_size,
+                         apply_chat_template=True)
+
+    print(f"Results saved to {output_dir}")
     return output_dir
 
 
