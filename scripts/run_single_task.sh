@@ -2,7 +2,7 @@
 #SBATCH --account=def-zhijing
 #SBATCH --gpus-per-node=h100:1
 #SBATCH --cpus-per-task=6
-#SBATCH --mem=48000M
+#SBATCH --mem=256000M
 #SBATCH --time=0-08:00
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
@@ -31,6 +31,10 @@ SEED=${7:-42}
 
 cd ~/Self-Distillation
 source setup_env.sh --job
+
+# Note: DeepSpeed's cpu_arch() in builder.py was patched to use -march=native
+# instead of -march=x86-64-v3 (which lacks AVX512 needed by cpu_adam).
+# See: sdft_env/lib/python3.11/site-packages/deepspeed/ops/op_builder/builder.py
 
 OUTPUT_DIR="$SCRATCH/${METHOD}_${TASK}_output/lr${LR}_bs${BS}_ep${EPOCHS}_alpha${ALPHA}_seed${SEED}"
 mkdir -p "$OUTPUT_DIR"

@@ -62,6 +62,7 @@ def train_sdft(args, train_dataset, tokenizer):
         fp16=False,
         per_device_train_batch_size=1,
         gradient_accumulation_steps=args.batch_size,
+        num_generations=1,  # Paper: "single on-policy rollout per training example"
         max_prompt_length=1024,
         max_completion_length=args.max_completion_length,
         num_train_epochs=args.num_train_epochs,
@@ -70,6 +71,8 @@ def train_sdft(args, train_dataset, tokenizer):
         report_to="wandb",
         output_dir=args.output_dir,
         log_completions=False,
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
         sync_ref_model=True,
         ref_model_sync_steps=1,
         ref_model_mixup_alpha=args.ref_model_mixup_alpha,
@@ -112,6 +115,7 @@ def train_dft(args, train_dataset, tokenizer):
         fp16=False,
         per_device_train_batch_size=1,
         gradient_accumulation_steps=args.batch_size,
+        num_generations=1,  # Paper: "single on-policy rollout per training example"
         max_prompt_length=1024,
         max_completion_length=args.max_completion_length,
         num_train_epochs=args.num_train_epochs,
@@ -120,6 +124,8 @@ def train_dft(args, train_dataset, tokenizer):
         report_to="wandb",
         output_dir=args.output_dir,
         log_completions=False,
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
         sync_ref_model=False,
         generate_from_teacher=True,
         vllm_importance_sampling_correction=True,
