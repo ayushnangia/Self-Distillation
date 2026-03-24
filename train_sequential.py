@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 import copy
+import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.data import TASK_LOADERS
@@ -216,6 +217,14 @@ if __name__ == "__main__":
         print(f"  Train: {len(train_ds)}, Test: {len(test_ds) if test_ds else 'N/A'}")
 
         task_output = f"{args.output_dir}/task{i+1}_{task_name}"
+
+        # Skip if this task was already completed (resume support)
+        if os.path.exists(os.path.join(task_output, "config.json")):
+            print(f"  Already completed — loading from {task_output}")
+            del model
+            torch.cuda.empty_cache()
+            model = AutoModelForCausalLM.from_pretrained(task_output, torch_dtype=torch.bfloat16)
+            continue
 
         if args.method == "sdft":
             model = train_sdft_on_task(model, tokenizer, train_ds, task_output, args)
