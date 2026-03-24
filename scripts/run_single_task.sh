@@ -1,8 +1,10 @@
 #!/bin/bash
 #SBATCH --account=def-zhijing
 #SBATCH --gpus-per-node=h100:1
-#SBATCH --cpus-per-task=6
-#SBATCH --mem=256000M
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=64
+#SBATCH --mem=0
 #SBATCH --time=0-08:00
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
