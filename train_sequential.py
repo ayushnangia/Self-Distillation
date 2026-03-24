@@ -11,10 +11,19 @@ Usage:
 
 import argparse
 import copy
+import glob
 import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.data import TASK_LOADERS
+
+
+def get_latest_checkpoint(output_dir):
+    """Find the latest checkpoint-N directory in output_dir, if any."""
+    checkpoints = sorted(glob.glob(os.path.join(output_dir, "checkpoint-*")))
+    if checkpoints:
+        return checkpoints[-1]
+    return None
 
 
 def parse_args():
@@ -86,7 +95,10 @@ def train_sdft_on_task(model, tokenizer, train_dataset, output_dir, args):
         train_dataset=train_dataset,
         processing_class=tokenizer,
     )
-    trainer.train()
+    resume_ckpt = get_latest_checkpoint(output_dir)
+    if resume_ckpt:
+        print(f"  Resuming SDFT from {resume_ckpt}")
+    trainer.train(resume_from_checkpoint=resume_ckpt)
     trainer.save_model(output_dir)
     # Reload clean model from saved checkpoint to avoid DeepSpeed state issues
     # when passing to the next task in sequential training
@@ -144,7 +156,10 @@ def train_dft_on_task(model, tokenizer, train_dataset, output_dir, args):
         train_dataset=train_dataset,
         processing_class=tokenizer,
     )
-    trainer.train()
+    resume_ckpt = get_latest_checkpoint(output_dir)
+    if resume_ckpt:
+        print(f"  Resuming DFT from {resume_ckpt}")
+    trainer.train(resume_from_checkpoint=resume_ckpt)
     trainer.save_model(output_dir)
     del trainer, ref_model
     torch.cuda.empty_cache()
@@ -186,7 +201,10 @@ def train_sft_on_task(model, tokenizer, train_dataset, output_dir, args):
         train_dataset=sft_dataset,
         processing_class=tokenizer,
     )
-    trainer.train()
+    resume_ckpt = get_latest_checkpoint(output_dir)
+    if resume_ckpt:
+        print(f"  Resuming SFT from {resume_ckpt}")
+    trainer.train(resume_from_checkpoint=resume_ckpt)
     trainer.save_model(output_dir)
     del trainer
     torch.cuda.empty_cache()
