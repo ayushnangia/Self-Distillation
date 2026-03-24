@@ -53,7 +53,11 @@ try:
 except ImportError:
     from trl.generation.vllm_client import VLLMClient
 from trl.import_utils import is_liger_kernel_available, is_vllm_available
-from trl.models import prepare_deepspeed, prepare_fsdp, prepare_peft_model, unwrap_model_for_generation
+from trl.models import prepare_deepspeed, prepare_fsdp, unwrap_model_for_generation
+try:
+    from trl.models import prepare_peft_model
+except ImportError:
+    prepare_peft_model = None  # Not available in TRL >= 0.29; unused with full fine-tuning
 from trl.models.utils import _ForwardRedirection
 from trl.trainer.base_trainer import BaseTrainer
 from distil_config import DistilConfig
