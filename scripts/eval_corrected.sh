@@ -67,7 +67,8 @@ lm_eval --model vllm \
     --tasks hellaswag,truthfulqa_mc1,mmlu,winogrande,humaneval \
     --batch_size auto \
     --output_path "$RESULTS_DIR/lm_eval" \
-    --log_samples
+    --log_samples \
+    --confirm_run_unsafe_code
 
 # 6. IFEval WITH chat template
 echo ""
@@ -78,6 +79,7 @@ lm_eval --model vllm \
     --apply_chat_template \
     --batch_size auto \
     --output_path "$RESULTS_DIR/lm_eval" \
-    --log_samples
+    --log_samples \
+    --confirm_run_unsafe_code
 
 echo "=== Done: $OUTPUT_NAME ==="
